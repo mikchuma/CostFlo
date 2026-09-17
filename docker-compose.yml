@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: costflo_db
+      POSTGRES_USER: costflo_user
+      POSTGRES_PASSWORD: costflo_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      POSTGRES_DB: costflo_db
+      POSTGRES_USER: costflo_user
+      POSTGRES_PASSWORD: costflo_pass
+      POSTGRES_HOST: db
+
+volumes:
+  postgres_data:
