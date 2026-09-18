@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from expenses.models import Expense
+from expenses.models import Expense, Group
 
 admin.site.register(Expense)
-# Register your models here.
+admin.site.register(Group)

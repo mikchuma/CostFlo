@@ -18,6 +18,9 @@
 </ul>
 </ul>
 <a href="{% url 'expense-add' %}">Dodaj wydatek</a>
+<a href="{% url 'group-add' %}">Dodaj grupe</a>
+<a href="{% url 'group-list' %}">Lista grup</a>
+
 
 <form method = "post" action = "{% url 'logout' %}">
     {% csrf_token %}

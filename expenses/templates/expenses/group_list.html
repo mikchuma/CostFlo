@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    {% for group in groups %}
+        <h1>{{group.name}}</h1>
+         <a href="{% url 'add-member-to-group' pk=group.pk %}">Dodaj członka</a>
+    {% endfor %}
+</body>
+</html>

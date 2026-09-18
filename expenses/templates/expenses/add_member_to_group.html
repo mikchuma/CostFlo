@@ -2,12 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Dodaj wydatek</title>
+    <title>Dodaj członka</title>
 </head>
 <body>
+    <h1>Dodaj członka do grupy: {{ group.name }}</h1>
+
     <form method="post">
         {% csrf_token %}
-        {{form.as_p}}
+        {{ form.as_p }}
         <button type="submit">Dodaj</button>
     </form>
 </body>
