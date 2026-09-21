@@ -5,13 +5,13 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, DeleteView, UpdateView, View
 from django.shortcuts import render, get_object_or_404, redirect
 from expenses.forms import ExpenseForm, GroupForm
-from expenses.models import Expense, Group
+from expenses.models import Expense, Group, ExpenseShare
 import django.utils.timezone as timezone
 from .forms import AddMemberForm
 
 
 class SignUpView(CreateView):
-    form_class = UserCreationForm
+    form_class = UserCreationForm 
     success_url = reverse_lazy('login')
     template_name = 'registration/signup.html'
 
@@ -24,7 +24,25 @@ class ExpenseCreateView(LoginRequiredMixin,CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        if self.object.group is not None:
+            members = self.object.group.members.all()
+            share_amount = self.object.amount / members.count()
+            for member in members:
+                ExpenseShare.objects.create(
+                    user = member,
+                    expense = self.object,
+                    amount = share_amount,
+            )
+        return response
+
+
+
+
+    def get_from_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
 class ExpenseListView(LoginRequiredMixin,ListView):
     model = Expense
@@ -62,6 +80,11 @@ class UpdateExpense(LoginRequiredMixin,UpdateView):
     success_url = reverse_lazy('expense-list')
     def get_queryset(self):
         return Expense.objects.filter(user=self.request.user)
+
+    def get_from_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
 class CreateGroup(LoginRequiredMixin,CreateView):
     model = Group

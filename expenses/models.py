@@ -19,3 +19,9 @@ class Expense(models.Model):
 
     def __str__(self):
         return f'{self.amount} zł - {self.category} ({self.user})'
+
+class ExpenseShare(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE)
+    expense = models.ForeignKey(Expense,on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10,decimal_places=2)
+    paid = models.BooleanField(default=False)
