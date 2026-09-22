@@ -8,6 +8,7 @@
     {% for group in groups %}
         <h1>{{group.name}}</h1>
          <a href="{% url 'add-member-to-group' pk=group.pk %}">Dodaj członka</a>
+         <a href="{% url 'group-balance' pk=group.pk %}">Wydatki grupy</a>
     {% endfor %}
 </body>
 </html>

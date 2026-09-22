@@ -118,3 +118,31 @@ class AddMemberToGroup(LoginRequiredMixin,View):
             group.members.add(selected_member)
             return redirect('expense-list')
         return render(request, 'expenses/add_member_to_group.html', {'form': form, 'group': group})
+
+class ExpenseShareView(LoginRequiredMixin,ListView):
+    model = ExpenseShare
+    template_name = 'expenses/expenseshare_list.html'
+    context_object_name = 'expenses_shares'
+
+    def get_queryset(self):
+        url_pk = self.kwargs.get('pk')
+        return ExpenseShare.objects.filter(expense__group_id=url_pk)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        url_pk = self.kwargs.get('pk')
+        context['total_unpaid'] = self.get_queryset().filter(paid=False).aggregate(total=Sum('amount'))['total'] or 0
+        expenses = Expense.objects.filter(group_id=url_pk)
+        context['expenses_with_shares'] = [
+            {'expense': expense, 'shares': expense.expenseshare_set.all()}
+            for expense in expenses
+        ]
+        return context
+
+class PayForExpense(LoginRequiredMixin,View):
+    def post(self,request,pk):
+        share = get_object_or_404(ExpenseShare, pk=pk, user=request.user)
+        share.paid = True
+        share.save()
+        return redirect('group-balance',pk=share.expense.group.pk)
+

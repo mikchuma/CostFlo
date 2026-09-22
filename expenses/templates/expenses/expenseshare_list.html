@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bilans grupy</title>
+</head>
+<body>
+
+    <h1>Niespłacone udziały</h1>
+    <h2>Do spłacenia w tej grupie: {{ total_unpaid|floatformat:2 }} zł</h2>
+
+    {% for item in expenses_with_shares %}
+        <h3>{{ item.expense.category }}</h3>
+        <ul>
+        {% for share in item.shares %}
+            <li>
+                {{ share.user }} jest winien/winna {{ share.amount|floatformat:2 }} zł
+                {% if share.paid %}
+                    <strong>— opłacone</strong>
+                {% elif share.user == user %}
+                    <form method="post" action="{% url 'share-pay' share.pk %}" style="display:inline">
+                        {% csrf_token %}
+                        <button type="submit">Zapłać</button>
+                    </form>
+                {% else %}
+                    <em>— czeka na opłacenie</em>
+                {% endif %}
+            </li>
+        {% endfor %}
+        </ul>
+    {% endfor %}
+
+    <a href="{% url 'group-list' %}">Wróć do listy grup</a>
+
+</body>
+</html>
