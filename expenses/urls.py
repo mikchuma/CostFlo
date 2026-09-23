@@ -1,6 +1,6 @@
 from django.urls import path
 from expenses.views import ExpenseCreateView, ExpenseListView, UpdateExpense, DeleteExpense, CreateGroup, GroupListView, \
-    AddMemberToGroup, ExpenseShareView, PayForExpense
+    AddMemberToGroup, ExpenseShareView, PayForShareDiff
 
 urlpatterns = [
     path('add/', ExpenseCreateView.as_view(),name = 'expense-add'),
@@ -11,5 +11,5 @@ urlpatterns = [
     path('group/',GroupListView.as_view(),name = 'group-list'),
     path('group/<int:pk>/add-member/',AddMemberToGroup.as_view(),name = 'add-member-to-group'),
     path('group/<int:pk>/details/',ExpenseShareView.as_view(),name = 'group-balance'),
-    path('share/<int:pk>/',PayForExpense.as_view(),name = 'share-pay'),
+    path('group/<int:group_pk>/settle/<int:debtor_pk>/<int:creditor_pk>/',PayForShareDiff.as_view(),name = 'pay-diff'),
 ]

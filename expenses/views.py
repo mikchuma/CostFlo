@@ -29,10 +29,11 @@ class ExpenseCreateView(LoginRequiredMixin,CreateView):
             members = self.object.group.members.all()
             share_amount = self.object.amount / members.count()
             for member in members:
-                ExpenseShare.objects.create(
-                    user = member,
-                    expense = self.object,
-                    amount = share_amount,
+                if member != self.request.user:
+                    ExpenseShare.objects.create(
+                        user = member,
+                        expense = self.object,
+                        amount = share_amount,
             )
         return response
 
@@ -137,12 +138,41 @@ class ExpenseShareView(LoginRequiredMixin,ListView):
             {'expense': expense, 'shares': expense.expenseshare_set.all()}
             for expense in expenses
         ]
+        unpaid_share = self.get_queryset().filter(paid=False)
+        balances = {}
+        for share in unpaid_share:
+            debtor = share.user
+            creditor = share.expense.user
+            if debtor == creditor:
+                continue
+            key = (debtor, creditor)
+            balances[key] = balances.get(key, 0) + share.amount
+        net_balances={}
+        for (debtor, creditor), amount in list(balances.items()):
+            reverse_key = (creditor, debtor)
+            key = (debtor, creditor)
+            if reverse_key in balances:
+                reverse_amount = balances[reverse_key]
+                if amount > reverse_amount:
+                    net_balances[key] = amount - reverse_amount
+                elif reverse_amount < amount:
+                    net_balances[reverse_key] = reverse_amount - amount
+                del balances[reverse_key]
+                del balances[key]
+            else:
+                net_balances[key] = amount
+                del balances[key]
+        context['net_balances'] = net_balances
+
         return context
 
-class PayForExpense(LoginRequiredMixin,View):
-    def post(self,request,pk):
-        share = get_object_or_404(ExpenseShare, pk=pk, user=request.user)
-        share.paid = True
-        share.save()
-        return redirect('group-balance',pk=share.expense.group.pk)
-
+class PayForShareDiff(LoginRequiredMixin,View):
+    def post(self,request,group_pk,debtor_pk,creditor_pk):
+        shares_to_settle = ExpenseShare.objects.filter(
+            expense__group_id=group_pk,
+            user_id=debtor_pk,
+            expense__user_id=creditor_pk,
+            paid = False
+        )
+        shares_to_settle.update(paid=True)
+        return redirect('group-balance',pk=group_pk)

@@ -6,22 +6,20 @@
 </head>
 <body>
 
-    <h1>Niespłacone udziały</h1>
-    <h2>Do spłacenia w tej grupie: {{ total_unpaid|floatformat:2 }} zł</h2>
+    <h1>Bilans grupy</h1>
+    <h2>Łączna kwota do spłacenia: {{ total_unpaid|floatformat:2 }} zł</h2>
 
+    <hr>
+
+    <h3>Wszystkie wydatki w grupie:</h3>
     {% for item in expenses_with_shares %}
-        <h3>{{ item.expense.category }}</h3>
+        <h4>{{ item.expense.category }} - Kwota całkowita: {{ item.expense.amount|floatformat:2 }} zł (Zapłacił/a: {{ item.expense.user }})</h4>
         <ul>
         {% for share in item.shares %}
             <li>
                 {{ share.user }} jest winien/winna {{ share.amount|floatformat:2 }} zł
                 {% if share.paid %}
                     <strong>— opłacone</strong>
-                {% elif share.user == user %}
-                    <form method="post" action="{% url 'share-pay' share.pk %}" style="display:inline">
-                        {% csrf_token %}
-                        <button type="submit">Zapłać</button>
-                    </form>
                 {% else %}
                     <em>— czeka na opłacenie</em>
                 {% endif %}
@@ -30,6 +28,31 @@
         </ul>
     {% endfor %}
 
+    <hr>
+
+    <h3>Bilans netto do uregulowania:</h3>
+    {% if net_balances %}
+        <ul>
+        {% for pair, amount in net_balances.items %}
+            <li>
+                <strong>{{ pair.0.username }}</strong> wisi <strong>{{ pair.1.username }}</strong> kwotę <strong>{{ amount|floatformat:2 }} zł</strong>
+
+                {% if request.user == pair.0 %}
+                    <form method="post" action="{% url 'pay-diff' view.kwargs.pk pair.0.pk pair.1.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit">Rozlicz</button>
+                    </form>
+                {% endif %}
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Wszystko jest rozliczone! Brak zaległości.</p>
+    {% endif %}
+
+    <hr>
+
+    <br>
     <a href="{% url 'group-list' %}">Wróć do listy grup</a>
 
 </body>
