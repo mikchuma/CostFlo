@@ -2,7 +2,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.db.models import Sum
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, ListView, DeleteView, UpdateView, View
+from django.views.generic import CreateView, ListView, DeleteView, UpdateView, View, TemplateView
 from django.shortcuts import render, get_object_or_404, redirect
 from expenses.forms import ExpenseForm, GroupForm
 from expenses.models import Expense, Group, ExpenseShare
@@ -155,7 +155,7 @@ class ExpenseShareView(LoginRequiredMixin,ListView):
                 reverse_amount = balances[reverse_key]
                 if amount > reverse_amount:
                     net_balances[key] = amount - reverse_amount
-                elif reverse_amount < amount:
+                elif reverse_amount > amount:
                     net_balances[reverse_key] = reverse_amount - amount
                 del balances[reverse_key]
                 del balances[key]
@@ -176,3 +176,20 @@ class PayForShareDiff(LoginRequiredMixin,View):
         )
         shares_to_settle.update(paid=True)
         return redirect('group-balance',pk=group_pk)
+
+class DashBoardView(LoginRequiredMixin,TemplateView):
+    template_name = 'expenses/dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['my_debts'] = ExpenseShare.objects.filter(user=self.request.user,paid=False)
+        context['others_debts'] = ExpenseShare.objects.filter(expense__user=self.request.user,paid=False)
+        my_debts_total = context['my_debts'].aggregate(total=Sum('amount'))['total'] or 0
+        others_debts_total = context['others_debts'].aggregate(total=Sum('amount'))['total'] or 0
+
+        balance = others_debts_total - my_debts_total
+        context['my_debts_total'] = my_debts_total
+        context['others_debts_total'] = others_debts_total
+        context['balance'] = balance
+
+        return context

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Podsumowanie całkowite</h1>
+    <h2>Moje długi (musisz oddać)</h2>
+    <ul>
+        {% for share in my_debts %}
+            <li>Jesteś winny <strong>{{ share.expense.user.username }}</strong> kwotę <strong>{{ share.amount|floatformat:2 }} zł</strong></li>
+        {% empty %}
+            <li>Brak długów! Wszystko masz opłacone.</li>
+        {% endfor %}
+    </ul>
+
+    <h2>Do spłacenia przez innych (czekasz na przelew)</h2>
+    <ul>
+        {% for share in others_debts %}
+            <li><strong>{{ share.user.username }}</strong> jest Ci winny <strong>{{ share.amount|floatformat:2 }} zł</strong></li>
+        {% empty %}
+            <li>Nikt Ci obecnie nic nie wisi.</li>
+        {% endfor %}
+    </ul>
+
+    <hr>
+
+    <h2>Podsumowanie całkowite:</h2>
+    <ul>
+        <li>Łącznie do spłaty: <strong>{{ my_debts_total|floatformat:2 }} zł</strong></li>
+        <li>Inni są Ci winni: <strong>{{ others_debts_total|floatformat:2 }} zł</strong></li>
+        <li>
+            Twój ogólny bilans:
+            <strong>
+                {% if balance > 0 %}
+                    <span style="color: green;">+{{ balance|floatformat:2 }} zł</span>
+                {% elif balance < 0 %}
+                    <span style="color: red;">{{ balance|floatformat:2 }} zł</span>
+                {% else %}
+                    0.00 zł
+                {% endif %}
+            </strong>
+        </li>
+    </ul>
+
+    <hr>
+
+    <br>
+    <a href="{% url 'group-list' %}">Przejdź do swoich grup</a> |
+    <a href="{% url 'expense-list' %}">Przejdź do swoich wydatków</a>
+
+</body>
+</html>
