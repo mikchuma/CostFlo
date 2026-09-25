@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Podział niestandardowy</title>
+</head>
+<body>
+
+    <h1>Podział niestandardowy</h1>
+    <p>Wydatek: <strong>{{ expense.title }}</strong></p>
+    <p>Kwota do podziału: <strong>{{ expense.amount }} zł</strong></p>
+
+    <hr>
+    {% if error %}
+        <div style="background-color: #ffcccc; color: #cc0000; padding: 10px; border: 1px solid #cc0000; margin-bottom: 15px;">
+            <strong>{{ error }}</strong>
+        </div>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <table border="1" cellpadding="10">
+            <thead>
+                <tr>
+                    <th>Osoba</th>
+                    <th>Kwota do oddania</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for form in formset %}
+                    <tr>
+                        <td>{{ form.user }}</td>
+                        <td>{{ form.amount }} zł</td>
+                        {% for hidden in form.hidden_fields %}
+                            {{ hidden }}
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <br>
+        <button type="submit">Zapisz dokładne kwoty</button>
+    </form>
+
+</body>
+</html>

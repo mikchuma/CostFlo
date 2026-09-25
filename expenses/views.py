@@ -7,7 +7,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from expenses.forms import ExpenseForm, GroupForm
 from expenses.models import Expense, Group, ExpenseShare
 import django.utils.timezone as timezone
-from .forms import AddMemberForm
+from .forms import AddMemberForm, ExpenseShareFormSet
 
 
 class SignUpView(CreateView):
@@ -22,28 +22,33 @@ class ExpenseCreateView(LoginRequiredMixin,CreateView):
     template_name = 'expenses/expense_form.html'
     success_url = reverse_lazy('expense-list')
 
-    def form_valid(self, form):
-        form.instance.user = self.request.user
-        response = super().form_valid(form)
-        if self.object.group is not None:
-            members = self.object.group.members.all()
-            share_amount = self.object.amount / members.count()
-            for member in members:
-                if member != self.request.user:
-                    ExpenseShare.objects.create(
-                        user = member,
-                        expense = self.object,
-                        amount = share_amount,
-            )
-        return response
-
-
-
-
-    def get_from_kwargs(self):
+    def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
         return kwargs
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        response = super().form_valid(form)
+        split_type = form.cleaned_data['split_type']
+
+        if split_type == 'EQUAL':
+            if self.object.group is not None:
+                members = self.object.group.members.all()
+                if members.count() > 0:
+                    share_amount = self.object.amount / members.count()
+                    for member in members:
+                        if member != self.request.user:
+                            ExpenseShare.objects.create(
+                                user = member,
+                                expense = self.object,
+                                amount = share_amount,
+                            )
+            return response
+        elif split_type == 'CUSTOM':
+            return redirect('expense-custom-split',pk=self.object.pk)
+
+        return response
 
 class ExpenseListView(LoginRequiredMixin,ListView):
     model = Expense
@@ -82,7 +87,7 @@ class UpdateExpense(LoginRequiredMixin,UpdateView):
     def get_queryset(self):
         return Expense.objects.filter(user=self.request.user)
 
-    def get_from_kwargs(self):
+    def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
         return kwargs
@@ -193,3 +198,56 @@ class DashBoardView(LoginRequiredMixin,TemplateView):
         context['balance'] = balance
 
         return context
+
+
+class ExpenseCustomSplitView(LoginRequiredMixin,TemplateView):
+    template_name = 'expenses/custom_split.html'
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        expense = get_object_or_404(Expense,pk=self.kwargs.get('pk'))
+        group = expense.group
+        initial_data = []
+
+        if group:
+            for member in group.members.all():
+                initial_data.append({'user':member})
+        context['expense'] = expense
+        ExpenseShareFormSet.extra = len(initial_data)
+
+        formset = ExpenseShareFormSet(instance=expense,initial = initial_data,form_kwargs={'group':group})
+        context['formset'] = formset
+        return context
+
+    def post(self, request, *args, **kwargs):
+        expense = get_object_or_404(Expense,pk=self.kwargs.get('pk'))
+        group = expense.group
+        formset = ExpenseShareFormSet(request.POST, instance=expense, form_kwargs={'group':group})
+        if formset.is_valid():
+            selected_users = []
+            total_sum = 0
+            error = None
+            for form in formset.forms:
+                if form.cleaned_data and not form.cleaned_data.get('DELETE',False):
+                    user = form.cleaned_data.get('user')
+                    amount = form.cleaned_data.get('amount',0)
+
+                    if user in selected_users:
+                        error = f"Błąd: Użytkownik {user.username} został wybrany więcej niż raz! Każda osoba może wystąpić w podziale tylko raz."
+                        break
+                    selected_users.append(user)
+                    total_sum += amount
+
+            if not error and total_sum != expense.amount:
+                error = f"Błąd: Wpisane kwoty dają łącznie {total_sum} zł, a wydatek wynosi {expense.amount} zł! Popraw wartości."
+            if not error:
+                formset.save()
+                return redirect('dashboard')
+
+            context = self.get_context_data()
+            context['formset'] = formset
+            context['error'] = error
+            return self.render_to_response(context)
+
+        context = self.get_context_data()
+        context['formset'] = formset
+        return self.render_to_response(context)
