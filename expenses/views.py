@@ -50,27 +50,6 @@ class ExpenseCreateView(LoginRequiredMixin,CreateView):
 
         return response
 
-class ExpenseListView(LoginRequiredMixin,ListView):
-    model = Expense
-    template_name = 'expenses/expense_list.html'
-    context_object_name = 'expenses'
-
-    def get_queryset(self):
-        return Expense.objects.filter(user=self.request.user).order_by('-date')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        time = timezone.now()
-        monthly_total = Expense.objects.filter(
-            user=self.request.user,
-            date__year=time.year,
-            date__month=time.month).aggregate(total=Sum('amount'))['total'] or 0
-        by_category = Expense.objects.filter(
-            user=self.request.user).values('category').annotate(total=Sum('amount'))
-        context['monthly_total'] = monthly_total
-        context['by_category'] = by_category
-        return context
-
 class DeleteExpense(LoginRequiredMixin,DeleteView):
     model = Expense
     success_url = reverse_lazy('expense-list')
@@ -182,23 +161,37 @@ class PayForShareDiff(LoginRequiredMixin,View):
         shares_to_settle.update(paid=True)
         return redirect('group-balance',pk=group_pk)
 
-class DashBoardView(LoginRequiredMixin,TemplateView):
+
+class DashBoardView(LoginRequiredMixin, TemplateView):
     template_name = 'expenses/dashboard.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['my_debts'] = ExpenseShare.objects.filter(user=self.request.user,paid=False)
-        context['others_debts'] = ExpenseShare.objects.filter(expense__user=self.request.user,paid=False)
+
+        context['expenses'] = Expense.objects.filter(user=self.request.user).order_by('-date')
+
+        time = timezone.now()
+        context['monthly_total'] = Expense.objects.filter(
+            user=self.request.user,
+            date__year=time.year,
+            date__month=time.month
+        ).aggregate(total=Sum('amount'))['total'] or 0
+
+        context['by_category'] = Expense.objects.filter(
+            user=self.request.user
+        ).values('category').annotate(total=Sum('amount'))
+
+        context['my_debts'] = ExpenseShare.objects.filter(user=self.request.user, paid=False)
+        context['others_debts'] = ExpenseShare.objects.filter(expense__user=self.request.user, paid=False)
+
         my_debts_total = context['my_debts'].aggregate(total=Sum('amount'))['total'] or 0
         others_debts_total = context['others_debts'].aggregate(total=Sum('amount'))['total'] or 0
 
-        balance = others_debts_total - my_debts_total
         context['my_debts_total'] = my_debts_total
         context['others_debts_total'] = others_debts_total
-        context['balance'] = balance
+        context['balance'] = others_debts_total - my_debts_total
 
         return context
-
 
 class ExpenseCustomSplitView(LoginRequiredMixin,TemplateView):
     template_name = 'expenses/custom_split.html'

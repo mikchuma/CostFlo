@@ -1,34 +1,30 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard</title>
+    <title>Dashboard - Centrum Dowodzenia</title>
 </head>
 <body>
-    <h1>Podsumowanie całkowite</h1>
-    <h2>Moje długi (musisz oddać)</h2>
-    <ul>
-        {% for share in my_debts %}
-            <li>Jesteś winny <strong>{{ share.expense.user.username }}</strong> kwotę <strong>{{ share.amount|floatformat:2 }} zł</strong></li>
-        {% empty %}
-            <li>Brak długów! Wszystko masz opłacone.</li>
-        {% endfor %}
-    </ul>
 
-    <h2>Do spłacenia przez innych (czekasz na przelew)</h2>
-    <ul>
-        {% for share in others_debts %}
-            <li><strong>{{ share.user.username }}</strong> jest Ci winny <strong>{{ share.amount|floatformat:2 }} zł</strong></li>
-        {% empty %}
-            <li>Nikt Ci obecnie nic nie wisi.</li>
-        {% endfor %}
-    </ul>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Twój Dashboard</h1>
+        <form method="post" action="{% url 'logout' %}" style="margin: 0;">
+            {% csrf_token %}
+            <button type="submit">Wyloguj się</button>
+        </form>
+    </div>
+
+    <p>
+        <a href="{% url 'expense-add' %}"><button><strong>+ Dodaj nowy wydatek</strong></button></a>
+        <a href="{% url 'group-add' %}"><button>+ Dodaj grupę</button></a>
+        <a href="{% url 'group-list' %}">Przejdź do listy grup</a>
+    </p>
 
     <hr>
 
-    <h2>Podsumowanie całkowite:</h2>
+    <h2>Podsumowanie całkowite</h2>
     <ul>
-        <li>Łącznie do spłaty: <strong>{{ my_debts_total|floatformat:2 }} zł</strong></li>
+        <li>Łącznie do spłaty (Twoje długi): <strong>{{ my_debts_total|floatformat:2 }} zł</strong></li>
         <li>Inni są Ci winni: <strong>{{ others_debts_total|floatformat:2 }} zł</strong></li>
         <li>
             Twój ogólny bilans:
@@ -44,11 +40,55 @@
         </li>
     </ul>
 
+    <h3>Moje długi (musisz oddać)</h3>
+    <ul>
+        {% for share in my_debts %}
+            <li>Jesteś winny <strong>{{ share.expense.user.username }}</strong> kwotę <strong>{{ share.amount|floatformat:2 }} zł</strong></li>
+        {% empty %}
+            <li>Brak długów! Wszystko masz opłacone.</li>
+        {% endfor %}
+    </ul>
+
+    <h3>Do spłacenia przez innych (czekasz na przelew)</h3>
+    <ul>
+        {% for share in others_debts %}
+            <li><strong>{{ share.user.username }}</strong> jest Ci winny <strong>{{ share.amount|floatformat:2 }} zł</strong></li>
+        {% empty %}
+            <li>Nikt Ci obecnie nic nie wisi.</li>
+        {% endfor %}
+    </ul>
+
     <hr>
 
-    <br>
-    <a href="{% url 'group-list' %}">Przejdź do swoich grup</a> |
-    <a href="{% url 'expense-list' %}">Przejdź do swoich wydatków</a>
+    <h2>Twoje wydatki</h2>
+    <ul>
+    {% for expense in expenses %}
+        <li>
+            {{ expense.date }} - {{ expense.category }} - <strong>{{ expense.amount|floatformat:2 }} zł</strong>
+            {% if expense.group %}
+                <em>(grupa: {{ expense.group.name }})</em>
+            {% endif %}
+            <a href="{% url 'expense-edit' expense.pk %}"><button type="button">Edytuj</button></a>
+            <form method="post" action="{% url 'expense-delete' expense.pk %}" style="display:inline">
+                {% csrf_token %}
+                <button type="submit">Usuń</button>
+            </form>
+        </li>
+    {% empty %}
+        <li>Brak wydatków na liście.</li>
+    {% endfor %}
+    </ul>
+
+    <p>Suma wprowadzonych wydatków w tym miesiącu: <strong>{{ monthly_total|floatformat:2 }} zł</strong></p>
+
+    <h3>Podsumowanie wg kategorii</h3>
+    <ul>
+    {% for row in by_category %}
+        <li>{{ row.category }}: {{ row.total|floatformat:2 }} zł</li>
+    {% empty %}
+        <li>Brak danych o kategoriach.</li>
+    {% endfor %}
+    </ul>
 
 </body>
 </html>
