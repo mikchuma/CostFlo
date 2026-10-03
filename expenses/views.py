@@ -1,7 +1,7 @@
 from django.contrib.auth.forms import UserCreationForm
 from django.db.models import Sum
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, ListView, DeleteView, UpdateView, View, TemplateView
 from django.shortcuts import render, get_object_or_404, redirect
 from expenses.forms import ExpenseForm, GroupForm
@@ -20,7 +20,7 @@ class ExpenseCreateView(LoginRequiredMixin,CreateView):
     model = Expense
     form_class = ExpenseForm
     template_name = 'expenses/expense_form.html'
-    success_url = reverse_lazy('expense-list')
+    success_url = reverse_lazy('dashboard')
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -52,7 +52,7 @@ class ExpenseCreateView(LoginRequiredMixin,CreateView):
 
 class DeleteExpense(LoginRequiredMixin,DeleteView):
     model = Expense
-    success_url = reverse_lazy('expense-list')
+    success_url = reverse_lazy('dashboard')
 
     def get_queryset(self):
         return Expense.objects.filter(user=self.request.user)
@@ -62,7 +62,7 @@ class UpdateExpense(LoginRequiredMixin,UpdateView):
     model = Expense
     form_class = ExpenseForm
     template_name = 'expenses/expense_form.html'
-    success_url = reverse_lazy('expense-list')
+    success_url = reverse_lazy('dashboard')
     def get_queryset(self):
         return Expense.objects.filter(user=self.request.user)
 
@@ -75,7 +75,7 @@ class CreateGroup(LoginRequiredMixin,CreateView):
     model = Group
     form_class = GroupForm
     template_name = 'expenses/group_form.html'
-    success_url = reverse_lazy('expense-list')
+    success_url = reverse_lazy('dashboard')
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -101,7 +101,7 @@ class AddMemberToGroup(LoginRequiredMixin,View):
         if form.is_valid():
             selected_member = form.cleaned_data['user']
             group.members.add(selected_member)
-            return redirect('expense-list')
+            return redirect('dashboard')
         return render(request, 'expenses/add_member_to_group.html', {'form': form, 'group': group})
 
 class ExpenseShareView(LoginRequiredMixin,ListView):
@@ -159,7 +159,7 @@ class PayForShareDiff(LoginRequiredMixin,View):
             paid = False
         )
         shares_to_settle.update(paid=True)
-        return redirect('group-balance',pk=group_pk)
+        return redirect(reverse('dashboard')+'?tab=groups')
 
 
 class DashBoardView(LoginRequiredMixin, TemplateView):
@@ -167,29 +167,93 @@ class DashBoardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        active_tab = self.request.GET.get('tab', 'history')
+        context['active_tab'] = active_tab
 
-        context['expenses'] = Expense.objects.filter(user=self.request.user).order_by('-date')
+        if active_tab == 'history':
+            history = []
 
-        time = timezone.now()
-        context['monthly_total'] = Expense.objects.filter(
-            user=self.request.user,
-            date__year=time.year,
-            date__month=time.month
-        ).aggregate(total=Sum('amount'))['total'] or 0
+            personal_expenses = Expense.objects.filter(user=self.request.user, group__isnull=True)
+            for expense in personal_expenses:
+                history.append({
+                    'type': 'personal',
+                    'id': expense.id,
+                    'date': expense.date,
+                    'title': expense.description or expense.category,
+                    'category': expense.category,
+                    'amount': expense.amount,
+                    'group_name': None
+                })
 
-        context['by_category'] = Expense.objects.filter(
-            user=self.request.user
-        ).values('category').annotate(total=Sum('amount'))
+            my_group_expenses = Expense.objects.filter(
+                user=self.request.user,
+                group__isnull=False
+            )
+            for exp in my_group_expenses:
+                others_shares_sum = ExpenseShare.objects.filter(
+                    expense=exp
+                ).exclude(
+                    user=self.request.user
+                ).aggregate(total=Sum('amount'))['total'] or 0
 
-        context['my_debts'] = ExpenseShare.objects.filter(user=self.request.user, paid=False)
-        context['others_debts'] = ExpenseShare.objects.filter(expense__user=self.request.user, paid=False)
+                my_cost = exp.amount - others_shares_sum
 
-        my_debts_total = context['my_debts'].aggregate(total=Sum('amount'))['total'] or 0
-        others_debts_total = context['others_debts'].aggregate(total=Sum('amount'))['total'] or 0
+                if my_cost > 0:
+                    title = exp.description if exp.description else exp.category
+                    history.append({
+                        'type': 'my_share',
+                        'id': exp.id,
+                        'date': exp.date,
+                        'title': f"{title} (Mój udział)",
+                        'category': exp.category,
+                        'amount': my_cost,
+                        'group_name': exp.group.name
+                    })
 
-        context['my_debts_total'] = my_debts_total
-        context['others_debts_total'] = others_debts_total
-        context['balance'] = others_debts_total - my_debts_total
+            paid_debts = ExpenseShare.objects.filter(
+                user=self.request.user,
+                paid=True
+            ).exclude(expense__user=self.request.user)
+
+            for share in paid_debts:
+                history.append({
+                    'type': 'paid_debt',
+                    'id': share.expense.id,
+                    'date': share.expense.date,
+                    'title': f"Spłata za: {share.expense.description} ({share.expense.user.username})",
+                    'category': share.expense.category,
+                    'amount': share.amount,
+                    'group_name': share.expense.group.name
+                })
+
+            history.sort(key=lambda x: x['date'], reverse=True)
+            context['history'] = history
+
+            current_month = timezone.now().month
+            context['current_month'] = current_month
+            current_year = timezone.now().year
+            monthly_total = 0
+            by_category = {}
+
+            for item in history:
+                if item['date'].month == current_month and item['date'].year == current_year:
+                    monthly_total += item['amount']
+                category = item['category']
+                by_category[category] = by_category.get(category, 0) + item['amount']
+
+            context['monthly_total'] = monthly_total
+            context['by_category'] = [{'category': k, 'total': v} for k, v in by_category.items()]
+
+        elif active_tab == 'groups':
+            context['my_debts'] = ExpenseShare.objects.filter(user=self.request.user, paid=False)
+            context['others_debts'] = ExpenseShare.objects.filter(expense__user=self.request.user, paid=False)
+
+            my_debts_total = context['my_debts'].aggregate(total=Sum('amount'))['total'] or 0
+            others_debts_total = context['others_debts'].aggregate(total=Sum('amount'))['total'] or 0
+
+            context['my_debts_total'] = my_debts_total
+            context['others_debts_total'] = others_debts_total
+            context['balance'] = others_debts_total - my_debts_total
 
         return context
 

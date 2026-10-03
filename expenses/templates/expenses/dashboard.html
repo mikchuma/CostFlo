@@ -1,94 +1,160 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard - Centrum Dowodzenia</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centrum Finansów</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{% static 'expenses/style.css' %}?v=2">
 </head>
 <body>
+    <div class="container">
 
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Twój Dashboard</h1>
-        <form method="post" action="{% url 'logout' %}" style="margin: 0;">
-            {% csrf_token %}
-            <button type="submit">Wyloguj się</button>
-        </form>
-    </div>
-
-    <p>
-        <a href="{% url 'expense-add' %}"><button><strong>+ Dodaj nowy wydatek</strong></button></a>
-        <a href="{% url 'group-add' %}"><button>+ Dodaj grupę</button></a>
-        <a href="{% url 'group-list' %}">Przejdź do listy grup</a>
-    </p>
-
-    <hr>
-
-    <h2>Podsumowanie całkowite</h2>
-    <ul>
-        <li>Łącznie do spłaty (Twoje długi): <strong>{{ my_debts_total|floatformat:2 }} zł</strong></li>
-        <li>Inni są Ci winni: <strong>{{ others_debts_total|floatformat:2 }} zł</strong></li>
-        <li>
-            Twój ogólny bilans:
-            <strong>
-                {% if balance > 0 %}
-                    <span style="color: green;">+{{ balance|floatformat:2 }} zł</span>
-                {% elif balance < 0 %}
-                    <span style="color: red;">{{ balance|floatformat:2 }} zł</span>
-                {% else %}
-                    0.00 zł
-                {% endif %}
-            </strong>
-        </li>
-    </ul>
-
-    <h3>Moje długi (musisz oddać)</h3>
-    <ul>
-        {% for share in my_debts %}
-            <li>Jesteś winny <strong>{{ share.expense.user.username }}</strong> kwotę <strong>{{ share.amount|floatformat:2 }} zł</strong></li>
-        {% empty %}
-            <li>Brak długów! Wszystko masz opłacone.</li>
-        {% endfor %}
-    </ul>
-
-    <h3>Do spłacenia przez innych (czekasz na przelew)</h3>
-    <ul>
-        {% for share in others_debts %}
-            <li><strong>{{ share.user.username }}</strong> jest Ci winny <strong>{{ share.amount|floatformat:2 }} zł</strong></li>
-        {% empty %}
-            <li>Nikt Ci obecnie nic nie wisi.</li>
-        {% endfor %}
-    </ul>
-
-    <hr>
-
-    <h2>Twoje wydatki</h2>
-    <ul>
-    {% for expense in expenses %}
-        <li>
-            {{ expense.date }} - {{ expense.category }} - <strong>{{ expense.amount|floatformat:2 }} zł</strong>
-            {% if expense.group %}
-                <em>(grupa: {{ expense.group.name }})</em>
-            {% endif %}
-            <a href="{% url 'expense-edit' expense.pk %}"><button type="button">Edytuj</button></a>
-            <form method="post" action="{% url 'expense-delete' expense.pk %}" style="display:inline">
+        <header class="top-nav">
+            <h1>Panel główny</h1>
+            <form method="post" action="{% url 'logout' %}" style="margin: 0;">
                 {% csrf_token %}
-                <button type="submit">Usuń</button>
+                <button type="submit" class="btn btn-outline">Wyloguj się</button>
             </form>
-        </li>
-    {% empty %}
-        <li>Brak wydatków na liście.</li>
-    {% endfor %}
-    </ul>
+        </header>
 
-    <p>Suma wprowadzonych wydatków w tym miesiącu: <strong>{{ monthly_total|floatformat:2 }} zł</strong></p>
+        <div style="display: flex; gap: 16px; margin-bottom: 32px;">
+            <a href="{% url 'expense-add' %}" class="btn btn-primary">+ Dodaj wydatek</a>
+            <a href="{% url 'group-list' %}" class="btn btn-outline">Zarządzaj grupami</a>
+        </div>
 
-    <h3>Podsumowanie wg kategorii</h3>
-    <ul>
-    {% for row in by_category %}
-        <li>{{ row.category }}: {{ row.total|floatformat:2 }} zł</li>
-    {% empty %}
-        <li>Brak danych o kategoriach.</li>
-    {% endfor %}
-    </ul>
+        <nav class="tabs-container">
+            <a href="?tab=history" class="tab-link {% if active_tab == 'history' %}active{% endif %}">
+                Oś czasu i wydatki
+            </a>
+            <a href="?tab=groups" class="tab-link {% if active_tab == 'groups' %}active{% endif %}">
+                Rozliczenia ze znajomymi
+            </a>
+        </nav>
 
+        {% if active_tab == 'history' %}
+            <div class="card">
+                <h2 class="card-header">Podsumowanie miesiąca</h2>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Suma wydatków w tym miesiącu</div>
+                        <div class="stat-value" style="color: var(--text-main);">
+                            {{ monthly_total|floatformat:2 }} <span style="font-size: 1rem; color: var(--text-muted);">zł</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 24px; align-items: start;">
+
+                <div class="card" style="margin-bottom: 0; grid-column: span 2;">
+                    <h2 class="card-header">Ostatnia aktywność</h2>
+                    <ul class="list-group">
+                        {% for item in history %}
+                            <li class="list-item">
+                                <div>
+                                    <strong>{{ item.title }}</strong>
+                                    <div class="stat-label" style="margin: 6px 0 0 0; text-transform: none;">
+                                        {{ item.date|date:"d M Y" }}
+                                        {% if item.group_name %}
+                                            &bull; <span style="color: var(--primary); font-weight: 600;">Grupa: {{ item.group_name }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 16px;">
+                                    <span class="badge neutral">{{ item.amount|floatformat:2 }} zł</span>
+                                    {% if item.type == 'personal' %}
+                                        <a href="{% url 'expense-edit' item.id %}" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.8rem;">Edytuj</a>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% empty %}
+                            <li class="list-item text-muted" style="justify-content: center; padding: 32px 0;">
+                                Brak wydatków na liście. Twój portfel oddycha z ulgą!
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="card" style="margin-bottom: 0;">
+                    <h2 class="card-header">Struktura kosztów</h2>
+                    <ul class="list-group">
+                    {% for row in by_category %}
+                        <li class="list-item">
+                            <span style="font-weight: 500;">{{ row.category }}</span>
+                            <strong>{{ row.total|floatformat:2 }} zł</strong>
+                        </li>
+                    {% empty %}
+                        <li class="list-item text-muted" style="justify-content: center; padding: 32px 0;">
+                            Brak przypisanych kategorii.
+                        </li>
+                    {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+        {% elif active_tab == 'groups' %}
+
+            <div class="card">
+                <h2 class="card-header">Bilans ogólny</h2>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Musisz oddać</div>
+                        <div class="stat-value text-red">{{ my_debts_total|floatformat:2 }} zł</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Inni są Ci winni</div>
+                        <div class="stat-value text-green">{{ others_debts_total|floatformat:2 }} zł</div>
+                    </div>
+                    <div class="stat-box" style="background-color: var(--card-bg);">
+                        <div class="stat-label">Twój bilans netto</div>
+                        <div class="stat-value {% if balance > 0 %}text-green{% elif balance < 0 %}text-red{% endif %}">
+                            {% if balance > 0 %}+{% endif %}{{ balance|floatformat:2 }} zł
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-bottom: 24px; align-items: start;">
+
+                <div class="card" style="margin-bottom: 0;">
+                    <h3 class="card-header">Do spłaty</h3>
+                    <ul class="list-group">
+                        {% for share in my_debts %}
+                            <li class="list-item">
+                                <div>
+                                    <span>Dla <strong>{{ share.expense.user.username }}</strong></span>
+                                    <div class="stat-label" style="margin: 4px 0 0 0; text-transform: none;">
+                                        Grupa: <strong>{{ share.expense.group.name }}</strong> • {{ share.expense.description }}
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <span class="badge red">- {{ share.amount|floatformat:2 }} zł</span>
+
+                                    <form action="{% url 'settle-share' share.expense.group.pk share.user.pk share.expense.user.pk %}" method="post" style="margin: 0;">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.8rem; color: var(--success-text); border-color: var(--success-text);">
+                                             Opłać
+                                        </button>
+                                    </form>
+                                </div>
+                            </li>
+                        {% empty %}
+                            <li class="list-item text-muted" style="justify-content: center; padding: 32px 0;">
+                                Jesteś czysty! Nie masz żadnych długów. 🎉
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+        {% endif %}
+
+    </div>
 </body>
 </html>
