@@ -21,6 +21,12 @@ class ExpenseForm(forms.ModelForm):
         model = Expense
         fields = ['amount', 'category','description','date','group','split_type']
 
+        widgets = {
+            'date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'form-control',
+            }),
+        }
     def __init__(self, *args,user=None, **kwargs):
         super().__init__(*args, **kwargs)
         if user is not None:

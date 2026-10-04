@@ -1,16 +1,50 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moje grupy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'expenses/style.css' %}?v=3">
 </head>
 <body>
-    <a href="{% url 'group-add' %}"><button><strong>+ Dodaj grupę</strong></button></a>
-    {% for group in groups %}
-        <h1>{{group.name}}</h1>
-         <a href="{% url 'add-member-to-group' pk=group.pk %}">Dodaj członka</a>
-         <a href="{% url 'group-balance' pk=group.pk %}">Wydatki grupy</a>
-         <a href="{% url 'dashboard'%}">Ekran główny</a>
-    {% endfor %}
+    <div class="container" style="max-width: 800px;">
+        <header class="top-nav">
+            <h1>Zarządzaj grupami</h1>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline">Ekran główny</a>
+        </header>
+
+        <div style="margin-bottom: 24px;">
+            <a href="{% url 'group-add' %}" class="btn btn-primary">+ Dodaj grupę</a>
+        </div>
+
+        <div class="card">
+            <h2 class="card-header">Lista Twoich grup</h2>
+            <ul class="list-group">
+                {% for group in groups %}
+                    <li class="list-item">
+                        <div>
+                            <strong style="font-size: 1.1rem;">{{ group.name }}</strong>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <a href="{% url 'group-balance' pk=group.pk %}" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.85rem;">
+                                Wydatki grupy
+                            </a>
+                            <a href="{% url 'add-member-to-group' pk=group.pk %}" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.85rem;">
+                                Dodaj członka
+                            </a>
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="list-item text-muted" style="justify-content: center; padding: 32px 0;">
+                        Nie należysz jeszcze do żadnej grupy.
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
 </body>
 </html>

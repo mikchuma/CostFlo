@@ -1,59 +1,96 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bilans grupy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'expenses/style.css' %}?v=3">
 </head>
 <body>
+    <div class="container" style="max-width: 800px;">
+        <header class="top-nav">
+            <h1>Bilans grupy</h1>
+            <a href="{% url 'group-list' %}" class="btn btn-outline">Wróć do listy grup</a>
+        </header>
 
-    <h1>Bilans grupy</h1>
-    <h2>Łączna kwota do spłacenia: {{ total_unpaid|floatformat:2 }} zł</h2>
+        <div class="stats-grid" style="margin-bottom: 24px;">
+            <div class="stat-box">
+                <div class="stat-label">Łączna kwota do spłacenia w grupie</div>
+                <div class="stat-value text-red">
+                    {{ total_unpaid|floatformat:2 }} <span style="font-size: 1rem; color: var(--text-muted);">zł</span>
+                </div>
+            </div>
+        </div>
 
-    <hr>
+        <div class="card">
+            <h2 class="card-header">Bilans netto do uregulowania</h2>
+            {% if net_balances %}
+                <ul class="list-group">
+                {% for pair, amount in net_balances.items %}
+                    <li class="list-item">
+                        <div>
+                            <strong>{{ pair.0.username }}</strong> wisi <strong>{{ pair.1.username }}</strong>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span class="badge red">- {{ amount|floatformat:2 }} zł</span>
+                            {% if request.user == pair.0 %}
+                                <form method="post" action="{% url 'pay-diff' view.kwargs.pk pair.0.pk pair.1.pk %}" style="margin: 0;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline" style="padding: 6px 12px; font-size: 0.8rem; color: var(--success); border-color: var(--success);">
+                                        Rozlicz
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <div style="text-align: center; padding: 32px 0; color: var(--text-muted); font-weight: 500;">
+                    Wszystko jest rozliczone! Brak zaległości. 🎉
+                </div>
+            {% endif %}
+        </div>
 
-    <h3>Wszystkie wydatki w grupie:</h3>
-    {% for item in expenses_with_shares %}
-        <h4>{{ item.expense.category }} - Kwota całkowita: {{ item.expense.amount|floatformat:2 }} zł (Zapłacił/a: {{ item.expense.user }})</h4>
-        <ul>
-        {% for share in item.shares %}
-            <li>
-                {{ share.user }} jest winien/winna {{ share.amount|floatformat:2 }} zł
-                {% if share.paid %}
-                    <strong>— opłacone</strong>
-                {% else %}
-                    <em>— czeka na opłacenie</em>
-                {% endif %}
-            </li>
-        {% endfor %}
-        </ul>
-    {% endfor %}
-
-    <hr>
-
-    <h3>Bilans netto do uregulowania:</h3>
-    {% if net_balances %}
-        <ul>
-        {% for pair, amount in net_balances.items %}
-            <li>
-                <strong>{{ pair.0.username }}</strong> wisi <strong>{{ pair.1.username }}</strong> kwotę <strong>{{ amount|floatformat:2 }} zł</strong>
-
-                {% if request.user == pair.0 %}
-                    <form method="post" action="{% url 'pay-diff' view.kwargs.pk pair.0.pk pair.1.pk %}" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit">Rozlicz</button>
-                    </form>
-                {% endif %}
-            </li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>Wszystko jest rozliczone! Brak zaległości.</p>
-    {% endif %}
-
-    <hr>
-
-    <br>
-    <a href="{% url 'group-list' %}">Wróć do listy grup</a>
-
+        <div class="card">
+            <h2 class="card-header">Wszystkie wydatki w grupie</h2>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                {% for item in expenses_with_shares %}
+                    <div style="border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; background-color: var(--subtle);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+                            <div>
+                                <strong style="font-size: 1.1rem;">{{ item.expense.category }}</strong>
+                                <div class="stat-label" style="margin: 4px 0 0; text-transform: none;">Zapłacił/a: <strong>{{ item.expense.user }}</strong></div>
+                            </div>
+                            <span class="badge neutral">{{ item.expense.amount|floatformat:2 }} zł</span>
+                        </div>
+                        <ul class="list-group">
+                        {% for share in item.shares %}
+                            <li class="list-item" style="padding: 8px 0; border: none; min-height: 0;">
+                                <span style="font-weight: 500;">{{ share.user }}</span>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <span style="font-variant-numeric: tabular-nums;">{{ share.amount|floatformat:2 }} zł</span>
+                                    {% if share.paid %}
+                                        <span class="badge green" style="font-size: 0.75rem; padding: 2px 8px;">Opłacone</span>
+                                    {% else %}
+                                        <span class="badge neutral" style="font-size: 0.75rem; padding: 2px 8px;">Czeka</span>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                {% empty %}
+                    <div style="text-align: center; padding: 32px 0; color: var(--text-muted);">
+                        Brak zarejestrowanych wydatków w tej grupie.
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
 </body>
 </html>

@@ -1,14 +1,48 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dodaj wydatek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'expenses/style.css' %}?v=3">
 </head>
 <body>
-    <form method="post">
-        {% csrf_token %}
-        {{form.as_p}}
-        <button type="submit">Dodaj</button>
-    </form>
+    <div class="container" style="max-width: 600px;">
+        <header class="top-nav">
+            <h1>Dodaj nowy wydatek</h1>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline">Powrót</a>
+        </header>
+
+        <div class="card">
+            <h2 class="card-header">Szczegóły wydatku</h2>
+            <form method="post">
+                {% csrf_token %}
+
+                {% for field in form %}
+                    <div class="form-group">
+                        {{ field.label_tag }}
+                        {{ field }}
+                        {% if field.help_text %}
+                            <small class="helptext">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <ul class="errorlist">
+                                <li>{{ error }}</li>
+                            </ul>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+
+                <div style="margin-top: 32px; display: flex; gap: 12px; justify-content: flex-end;">
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline">Anuluj</a>
+                    <button type="submit" class="btn btn-primary">Dodaj wydatek</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

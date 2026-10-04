@@ -75,7 +75,7 @@ class CreateGroup(LoginRequiredMixin,CreateView):
     model = Group
     form_class = GroupForm
     template_name = 'expenses/group_form.html'
-    success_url = reverse_lazy('dashboard')
+    success_url = reverse_lazy('group-list')
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -100,8 +100,11 @@ class AddMemberToGroup(LoginRequiredMixin,View):
         form = AddMemberForm(request.POST)
         if form.is_valid():
             selected_member = form.cleaned_data['user']
-            group.members.add(selected_member)
-            return redirect('dashboard')
+            if group.members.filter(pk=selected_member.pk).exists():
+                form.add_error('user',"Ten użytkownik jest już członkiem grupy!")
+            else:
+                group.members.add(selected_member)
+                return redirect('group-list')
         return render(request, 'expenses/add_member_to_group.html', {'form': form, 'group': group})
 
 class ExpenseShareView(LoginRequiredMixin,ListView):

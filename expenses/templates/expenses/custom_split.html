@@ -1,48 +1,86 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Podział niestandardowy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'expenses/style.css' %}?v=3">
 </head>
 <body>
+    <div class="container" style="max-width: 700px;">
+        <header class="top-nav">
+            <h1>Podział niestandardowy</h1>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline">Powrót</a>
+        </header>
 
-    <h1>Podział niestandardowy</h1>
-    <p>Wydatek: <strong>{{ expense.title }}</strong></p>
-    <p>Kwota do podziału: <strong>{{ expense.amount }} zł</strong></p>
+        {% if error %}
+            <ul class="messages">
+                <li class="error">{{ error }}</li>
+            </ul>
+        {% endif %}
 
-    <hr>
-    {% if error %}
-        <div style="background-color: #ffcccc; color: #cc0000; padding: 10px; border: 1px solid #cc0000; margin-bottom: 15px;">
-            <strong>{{ error }}</strong>
+        <div class="stats-grid" style="margin-bottom: 24px;">
+            <div class="stat-box">
+                <div class="stat-label">Wydatek</div>
+                <div class="stat-value" style="font-size: 1.5rem;">{{ expense.title|default:expense.description|default:expense.category }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Kwota do podziału</div>
+                <div class="stat-value" style="color: var(--primary);">
+                    {{ expense.amount }} <span style="font-size: 1rem; color: var(--text-muted);">zł</span>
+                </div>
+            </div>
         </div>
-    {% endif %}
-    <form method="post">
-        {% csrf_token %}
-        {{ formset.management_form }}
 
-        <table border="1" cellpadding="10">
-            <thead>
-                <tr>
-                    <th>Osoba</th>
-                    <th>Kwota do oddania</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for form in formset %}
-                    <tr>
-                        <td>{{ form.user }}</td>
-                        <td>{{ form.amount }} zł</td>
-                        {% for hidden in form.hidden_fields %}
-                            {{ hidden }}
-                        {% endfor %}
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="card">
+            <form method="post">
+                {% csrf_token %}
+                {{ formset.management_form }}
 
-        <br>
-        <button type="submit">Zapisz dokładne kwoty</button>
-    </form>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Osoba</th>
+                                <th style="width: 200px;">Kwota do oddania</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for form in formset %}
+                                <tr>
+                                    <td>
+                                        {{ form.user }}
+                                        {% for error in form.user.errors %}
+                                            <div class="errorlist">{{ error }}</div>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            {{ form.amount }}
+                                            <span class="text-muted" style="font-weight: 500;">zł</span>
+                                        </div>
+                                        {% for error in form.amount.errors %}
+                                            <div class="errorlist">{{ error }}</div>
+                                        {% endfor %}
+                                    </td>
+                                    {% for hidden in form.hidden_fields %}
+                                        <td style="display: none;">{{ hidden }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
 
+                <div style="margin-top: 32px; display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn btn-primary">Zapisz dokładne kwoty</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
 </html>
