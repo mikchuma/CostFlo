@@ -1,10 +1,10 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dodaj członka</title>
+    <title>Add member</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,12 +13,12 @@
 <body>
     <div class="container" style="max-width: 600px;">
         <header class="top-nav">
-            <h1>Dodaj członka</h1>
-            <a href="{% url 'group-list' %}" class="btn btn-outline">Powrót</a>
+            <h1>Add member</h1>
+            <a href="{% url 'group-list' %}" class="btn btn-outline">Back</a>
         </header>
 
         <div class="card">
-            <h2 class="card-header">Grupa: {{ group.name }}</h2>
+            <h2 class="card-header">Group: {{ group.name }}</h2>
             <form method="post">
                 {% csrf_token %}
 
@@ -38,8 +38,8 @@
                 {% endfor %}
 
                 <div style="margin-top: 32px; display: flex; gap: 12px; justify-content: flex-end;">
-                    <a href="{% url 'group-list' %}" class="btn btn-outline">Anuluj</a>
-                    <button type="submit" class="btn btn-primary">Dodaj członka</button>
+                    <a href="{% url 'group-list' %}" class="btn btn-outline">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Add member</button>
                 </div>
             </form>
         </div>

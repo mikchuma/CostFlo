@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rejestracja</title>
+    <title>Sign up</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 <body>
     <div class="container" style="max-width: 500px; margin-top: 5vh;">
         <div class="card">
-            <h1 class="card-header" style="text-align: center; margin-bottom: 24px; font-size: 1.5rem;">Załóż konto</h1>
+            <h1 class="card-header" style="text-align: center; margin-bottom: 24px; font-size: 1.5rem;">Create an account</h1>
 
             {% if form.non_field_errors %}
                 <ul class="messages">
@@ -42,12 +42,12 @@
                 {% endfor %}
 
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px; padding: 12px; font-size: 1rem;">
-                    Zarejestruj się
+                    Sign up
                 </button>
             </form>
 
             <div style="text-align: center; margin-top: 24px; font-size: 0.9rem; color: var(--text-muted);">
-                Masz już konto? <a href="{% url 'login' %}" style="font-weight: 600;">Zaloguj się</a>
+                Already have an account? <a href="{% url 'login' %}" style="font-weight: 600;">Log in</a>
             </div>
         </div>
     </div>
