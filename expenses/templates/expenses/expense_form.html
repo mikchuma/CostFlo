@@ -44,5 +44,26 @@
             </form>
         </div>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded",function() {
+            const groupSelect = document.getElementById("id_group")
+            const splitTypeInputs = document.getElementsByName('split_type')
+
+            if(groupSelect && splitTypeInputs.length > 0)
+            {
+                const splitTypeContainer = splitTypeInputs[0].closest(".form-group")
+
+                function toggleSplitType() {
+                    if (groupSelect.value === "") {
+                        splitTypeContainer.style.display = 'none';
+                    } else {
+                        splitTypeContainer.style.display = 'block';
+                    }
+                }
+                toggleSplitType();
+                groupSelect.addEventListener('change',toggleSplitType);
+            }
+        });
+    </script>
 </body>
 </html>
